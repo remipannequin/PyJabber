@@ -28,12 +28,18 @@ class ConnectionManager(metaclass=Singleton):
             ("0.0.0.0", "50000"): ("domain.es", <asyncio.Transport>),
             ("0.0.0.0", "50001"): ("host.com", <asyncio.Transport>)
         }
+
+        componentList = {
+            ("0.0.0.0", "50000"): ("sub.localhost", <asyncio.Transport>),
+            ("0.0.0.0", "50001"): ("sub1.localhos", <asyncio.Transport>)
+        }
     """
 
     def __init__(self) -> None:
 
         self._peerList: PeerList = {}
         self._remoteList = {}
+        self._componentList = {}
 
     @property
     def peerList(self):
@@ -42,6 +48,10 @@ class ConnectionManager(metaclass=Singleton):
     @property
     def remoteList(self):
         return self._remoteList
+
+    @property
+    def componentList(self):
+        return self._componentList
 
     ###########################################################################
     ############################## LOCAL BOUND ################################
@@ -322,3 +332,94 @@ class ConnectionManager(metaclass=Singleton):
         if peer not in self._remoteList:
             return None
         return self._remoteList.get(peer)[1].get_extra_info("ssl_object")
+    
+    ###########################################################################
+    ########################### EXTERNAL COMPONENT ############################
+    ###########################################################################
+    def connection_component(self, peer: Tuple[str, int], transport=None, host: str = None) -> None:
+        """
+            Store a new external component connection.
+
+            :param peer: The peer value in the tuple format ({IP}, {PORT})
+            :param transport: The transport object associated to the connection
+            :param host: The host bound to the connection
+        """
+        if peer not in self._componentList:
+            self._componentList[peer] = (host, transport)
+
+    def disconnection_component(self, peer: Tuple[str, int]) -> None:
+        """
+            Remove a stored connection, and fires the DisconnectEvent
+
+            :param peer: The peer value in the tuple format ({IP}, {PORT})
+        """
+
+        try:
+            self._componentList.pop(peer)
+        except KeyError:
+            logger.warning(f"Server {peer} not present in the online list")
+
+    def close_component(self, peer: Tuple[str, int]) -> None:
+        """
+            Closes a connection by sending a '</stream:stream> message' and
+            deletes it from the remote list
+
+            :param peer: The peer value in the tuple format ({IP}, {PORT})
+        """
+        try:
+            _, buffer = self._componentList.pop(peer)
+            # TODO How to do it properly in XEP-0114 ?
+            buffer.write('</stream:stream>'.encode())
+            self.disconnection_component(peer)
+        except KeyError as e:
+            logger.error(f"{peer} not present in the online list")
+
+    def get_component_buffer(self, peer: Optional[Tuple[str, int]] = None, host: Optional[str] = None) -> Union[
+        Transport, None]:
+        """
+            Return the buffer associated with the given component
+        """
+        if peer:
+            if peer not in self._componentList:
+                logger.error("Missing peer in the connection list. Check it")
+                return None
+            return self._componentList.get(peer)[1]
+
+        if host:
+            try:
+                return [buffer[1] for buffer in self._componentList.values() if buffer[0] == host].pop()
+            except IndexError:
+                pass
+
+        logger.error("Missing peer OR host to search for server transport. Returning None")
+        return None
+
+    def update_transport_component(self, new_transport: Transport, peer: Tuple[str, int] = None, host: str = None):
+        if not peer and not host:
+            logger.warning(
+                "Missing peer OR jid parameter to update transport in server connection. No action will be performed")
+            return
+
+        if peer:
+            try:
+                host, _ = self._componentList[peer]
+                self._componentList[peer] = (host, new_transport)
+                return
+            except KeyError:
+                logger.warning("Unable to find server with given peer. Check this inconsistency")
+                return
+
+        match = next(((k, v) for k, v in self._componentList.items() if v[0] == host), None)
+        if match:
+            host, _ = match[1]
+            self._componentList[match[0]] = (host, new_transport)
+        else:
+            logger.warning("Unable to find server with given host. Check this inconsistency")
+
+    def get_component_host(self, peer: Tuple[str, int]):
+        """
+            Return the host associated with the given peer.
+            :return: Hostname
+        """
+        return self._componentList.get(peer)[0] if self._componentList.get(peer) else None
+

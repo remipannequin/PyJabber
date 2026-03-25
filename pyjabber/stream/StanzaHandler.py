@@ -90,7 +90,8 @@ class StanzaHandler:
                 else:
                     for buffer in resource_online:
                         buffer[1].write(ET.tostring(element))
-
+        # elif jid.domain is a subdomain of local domain
+        # feed message to plugin_manager
         # Remote server
         else:
             ns, tag = CN.deglose(element.tag)

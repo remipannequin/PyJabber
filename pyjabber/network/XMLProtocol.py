@@ -15,6 +15,7 @@ from pyjabber.network.StreamAlivenessMonitor import StreamAlivenessMonitor
 from pyjabber.network.parsers.XMLParser import XMLParser
 from pyjabber.network.parsers.XMLServerIncomingParser import XMLServerIncomingParser
 from pyjabber.network.parsers.XMLServerOutgoingParser import XMLServerOutgoingParser
+from pyjabber.network.parsers.XMLComponentParser import XMLComponentParser
 from pyjabber.stream.StanzaHandler import InternalServerError
 
 
@@ -74,6 +75,8 @@ class XMLProtocol(asyncio.Protocol):
 
         if self._connection_type == SCT.CLIENT:
             self._logger_tag = "from"
+        elif self._connection_type == SCT.COMPONENT:
+            self._logger_tag = "component"
         elif self._connection_type == SCT.FROM_SERVER:
             self._logger_tag = "from server"
         else:
@@ -115,6 +118,10 @@ class XMLProtocol(asyncio.Protocol):
                 self._xml_parser.setContentHandler(
                     XMLServerOutgoingParser(self._host, self._transport, self.task_tls)
                 )
+            elif self._connection_type == SCT.COMPONENT:
+                self._xml_parser.setContentHandler(
+                    XMLComponentParser(self._host, self._transport, self.task_tls)
+                )
             else:
                 self._xml_parser.setContentHandler(
                     XMLParser(self._transport, self.task_tls)
@@ -128,6 +135,8 @@ class XMLProtocol(asyncio.Protocol):
 
             if self._connection_type == SCT.CLIENT:
                 self._connection_manager.connection(self._peer, self._transport)
+            elif self._connection_type == SCT.COMPONENT:
+                self._connection_manager.connection_component(self._peer, self._transport)
             else:
                 self._connection_manager.connection_server(self._peer, self._transport, self._host)
 
@@ -155,6 +164,8 @@ class XMLProtocol(asyncio.Protocol):
 
         if self._connection_type == SCT.CLIENT:
             self._connection_manager.disconnection(self._peer)
+        elif self._connection_manager == SCT.COMPONENT:
+            self._connection_manager.disconnection_component(self._peer)
         else:
             self._connection_manager.disconnection_server(self._peer)
 
@@ -199,6 +210,8 @@ class XMLProtocol(asyncio.Protocol):
 
         if self._connection_type == SCT.CLIENT:
             self._connection_manager.disconnection(self._peer)
+        elif self._connection_type == SCT.COMPONENT:
+            self._connection_manager.disconnection_component(self._peer)
         else:
             self._connection_manager.disconnection_server(self._peer)
 

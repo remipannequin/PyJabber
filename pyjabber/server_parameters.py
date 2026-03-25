@@ -13,6 +13,7 @@ class Parameters:
     client_port: int = 5222
     server_port: int = 5269
     server_out_port: int = 5269
+    component_port: int = 5347
     family: socket.AddressFamily = socket.AF_INET
     connection_timeout: int = 60
     database_path: str = os.path.join(os.getcwd(), "pyjabber.db")

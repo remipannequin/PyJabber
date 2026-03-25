@@ -34,6 +34,7 @@ class Server:
         self._client_port = param.client_port
         self._server_port = param.server_port
         self._server_out_port = param.server_out_port
+        self._component_port = param.component_port
         self._family = param.family
         self._client_listener = None
         self._server_listener = None
@@ -58,6 +59,7 @@ class Server:
             connection_timeout=param.connection_timeout,
             family=self._family,
             server_port=self._server_port,
+            #component_port=self._component_port,
             database_path=self._database_path,
             database_purge=self._database_purge,
             database_in_memory=self._database_in_memory,
@@ -140,6 +142,29 @@ class Server:
             logger.info(
                 f"Server is listening servers on {[s.getsockname() for s in self._server_listener.sockets if s]}")
             logger.success("Server started...")
+            # if xep-0114 plugin is present, start external components server
+            # TODO check metadata.PLUGIN
+            try:
+                self._component_listener = await loop.create_server(
+                    lambda: XMLProtocol(
+                        namespace="jabber:server",
+                        host=self._host,
+                        connection_timeout=self._connection_timeout,
+                        cert_path=self._cert_path,
+                        connection_type=SCT.COMPONENT
+                    ),
+                    host=["127.0.0.1"],
+                    port=self._component_port,
+                    family=self._family,
+                )
+            except OSError as e:
+                logger.error(e)
+                raise SystemExit
+
+            logger.info(
+                f"Server is listening external components on {[s.getsockname() for s in self._component_listener.sockets if s]}")
+            logger.success("External component server started...")
+            
             self._ready.set()
 
             while True:
