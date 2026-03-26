@@ -1,11 +1,17 @@
-from unittest.mock import patch, Mock
+from unittest.mock import patch, Mock, MagicMock
 
 import pytest
+
 from asyncio import Transport
+from xml.etree import ElementTree as ET
+from uuid import uuid4
 
 from pyjabber.server import Server
 from pyjabber.network.ConnectionManager import ConnectionManager
 from pyjabber.server_parameters import Parameters
+from pyjabber.stream.component.StreamComponentHandler import StreamComponentHandler
+from pyjabber.stream.StreamHandler import Stage
+from pyjabber.stream.Signal import Signal
 
 
 @pytest.fixture
@@ -41,14 +47,50 @@ def test_connections():
     conn.disconnection_component(test_peer)
     assert len(conn.componentList) == 0
 
-@pytest.fixture
-def setup_stream():
-    with patch('pyjabber.stream.StreamHandler.metadata') as mock_meta_sh:
-        with patch('pyjabber.features.SASLFeature.metadata') as mock_meta_sasl:
-            transport = Mock()
-            starttls = Mock()
-            mock_meta_sh.HOST = 'localhost'
-            mock_meta_sasl.HOST = 'localhost'
-            mock_protocol = MagicMock()
-            mock_protocol.from_claim = None
-            yield StreamHandler(transport, starttls, mock_protocol)
+
+def test_stream_handler_constructor(setup):
+    
+    mock_transport = MagicMock()
+
+    mock_parser_red = MagicMock()
+
+    with patch('pyjabber.stream.StreamHandler.metadata') as mock_meta:
+        mock_meta.HOST = 'localhost'
+        mock_meta.PLUGINS = ['jabber:iq:register']
+        handler = StreamComponentHandler(mock_transport, None, mock_parser_red)
+
+    assert handler._ibr_feature == False
+    assert list(handler._stages_handlers.keys()) == [
+        Stage.CONNECTED, Stage.AUTH
+    ]
+    assert handler._handle_init_comp == handler._stages_handlers[Stage.CONNECTED]
+    assert handler._handle_handshake == handler._stages_handlers[Stage.AUTH]
+
+
+def test_stream_handler_auth(setup):
+    
+    mock_transport = MagicMock()
+    mock_parser_red = MagicMock()
+
+    stream_id = "062504fe-f665-4fba-97c9-6254ce40e48f"
+    component_domain = "sub.localhost"
+
+    with patch('pyjabber.stream.StreamHandler.metadata') as mock_meta:
+        mock_meta.HOST = 'localhost'
+        mock_meta.PLUGINS = ['jabber:iq:register']
+        handler = StreamComponentHandler(mock_transport, None, mock_parser_red)
+        handler._stage = Stage.AUTH
+
+    handler.set_stream_id(stream_id, component_domain)
+    handshake = "e417473576b7e5adf16d3c8e9ea8f47100ad5f1f"
+    assert handler.verify_handshake(handshake)
+    for _ in range(10):
+        assert not handler.verify_handshake(str(uuid4()))
+    in_elt = ET.Element("{jabber:component:accept}handshake")
+    in_elt.text = handshake
+    # TODO test authentication failed : should send SIGNAL.FORCE_CLOSE
+    signal = handler.handle_open_stream(elem=in_elt)
+    mock_transport.write.assert_called_with(b'<handshake/>')
+    assert handler._stage == Stage.READY
+    assert signal == Signal.DONE
+
