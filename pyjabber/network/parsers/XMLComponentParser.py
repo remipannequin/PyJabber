@@ -7,6 +7,7 @@ class XMLComponentParser(XMLParser):
     stanza_handler_constructor = StanzaComponentHandler
     stream_handler_constructor = StreamComponentHandler
     server: bool = False
+    component: bool = True
 
     def __init__(self, host, transport, starttls):
         super().__init__(transport, starttls)

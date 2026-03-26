@@ -20,6 +20,7 @@ class XMLParser(ContentHandler):
     stanza_handler_constructor = StanzaHandler
     stream_handler_constructor = StreamHandler
     server: bool = False
+    component: bool = False
 
     def __init__(self, transport, starttls):
         super().__init__()
@@ -68,7 +69,7 @@ class XMLParser(ContentHandler):
             self._from_claim = elem.attrib.get("from")
             self._stack.append(elem)
 
-            self._transport.write(Stream.responseStream(attrs, self.server))
+            self._transport.write(Stream.responseStream(attrs, self.server, self.component))
             signal = self._streamHandler.handle_open_stream()
             if signal and signal == Signal.DONE:
                 self._stanzaHandler = self.stanza_handler_constructor(self._transport)

@@ -10,6 +10,7 @@ class Namespaces(enum.Enum):
     XMLSTREAM = "http://etherx.jabber.org/streams"
     CLIENT = "jabber:client"
     SERVER = "jabber:server"
+    COMPONENT = "jabber:component:accept"
 
 
 class Stream(ET.Element):
@@ -18,6 +19,7 @@ class Stream(ET.Element):
         XMLSTREAM = "http://etherx.jabber.org/streams"
         CLIENT = "jabber:client"
         SERVER = "jabber:server"
+        COMPONENT = "jabber:component:accept"
 
     def __init__(
             self,
@@ -53,7 +55,7 @@ class Stream(ET.Element):
         return tag.encode()
 
     @staticmethod
-    def responseStream(attrs, server: bool = False):
+    def responseStream(attrs, server: bool = False, component: bool = False):
         attrs = dict(attrs)
 
         id = str(uuid4())
@@ -68,7 +70,7 @@ class Stream(ET.Element):
             to=from_,
             version=version,
             xml_lang=lang,
-            xmlns=Namespaces.SERVER.value if server else Namespaces.CLIENT.value
+            xmlns=Namespaces.SERVER.value if server else Namespaces.COMPONENT.value if component else Namespaces.CLIENT.value
         )
 
         return stream.open_tag()

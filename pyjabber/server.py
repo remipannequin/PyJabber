@@ -147,7 +147,7 @@ class Server:
             try:
                 self._component_listener = await loop.create_server(
                     lambda: XMLProtocol(
-                        namespace="jabber:server",
+                        namespace="jabber:component:accept",
                         host=self._host,
                         connection_timeout=self._connection_timeout,
                         cert_path=self._cert_path,
