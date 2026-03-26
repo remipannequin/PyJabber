@@ -394,27 +394,14 @@ class ConnectionManager(metaclass=Singleton):
         logger.error("Missing peer OR host to search for component transport. Returning None")
         return None
 
-    def update_transport_component(self, new_transport: Transport, peer: Tuple[str, int] = None, host: str = None):
-        if not peer and not host:
-            logger.warning(
-                "Missing peer OR jid parameter to update transport in server connection. No action will be performed")
+    def set_component_host(self, peer: Tuple[str, int], host:str):
+        """Update the component host (subdomain) when it is declared by the component."""
+        if peer not in self._componentList:
+            logger.error("Missing peer in the connection list. Check it")
             return
+        transport = self._componentList.get(peer)[1]
+        self._componentList[peer] = (host, transport)
 
-        if peer:
-            try:
-                host, _ = self._componentList[peer]
-                self._componentList[peer] = (host, new_transport)
-                return
-            except KeyError:
-                logger.warning("Unable to find server with given peer. Check this inconsistency")
-                return
-
-        match = next(((k, v) for k, v in self._componentList.items() if v[0] == host), None)
-        if match:
-            host, _ = match[1]
-            self._componentList[match[0]] = (host, new_transport)
-        else:
-            logger.warning("Unable to find server with given host. Check this inconsistency")
 
     def get_component_host(self, peer: Tuple[str, int]):
         """
@@ -423,3 +410,15 @@ class ConnectionManager(metaclass=Singleton):
         """
         return self._componentList.get(peer)[0] if self._componentList.get(peer) else None
 
+
+    def has_component_host(self, domain):
+        """Return true if a component manages this subdomain"""
+        return domain in [b[0] for b in self._componentList.values()]
+
+def is_subdomain_of(parent: str, domain: str) -> bool:
+    """Utility function that return true if to_test is a subdomain of domain.
+    It is strict: if parent and domain are the same, it returns False"""
+    domain = domain.lower()
+    parent = parent.lower()
+
+    return domain.endswith("." + parent)
