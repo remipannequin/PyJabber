@@ -20,17 +20,18 @@ from pyjabber.stream.StanzaHandler import InternalServerError
 
 
 class TransportProxy:
-    def __init__(self, transport, peer, server = False):
+    def __init__(self, transport, peer, server = False, component = False):
         self._transport = transport
         self._peer = peer
         self._server = server
+        self._component = component
 
     @property
     def originalTransport(self):
         return self._transport
 
     def write(self, data):
-        logger.trace(f"Sending to {'server ' if self._server else ''}{self._peer}: {data}")
+        logger.trace(f"Sending to {'server ' if self._server else ''}{'component ' if self._component else ''}{self._peer}: {data}")
         return self._transport.write(data)
 
     def __getattr__(self, name):
@@ -105,7 +106,7 @@ class XMLProtocol(asyncio.Protocol):
             self._peer = transport.get_extra_info('peername')
             logger.info(f"Connection {self._logger_tag} {self._peer}")
 
-            self._transport = TransportProxy(transport, self._peer, self._connection_type != SCT.CLIENT)
+            self._transport = TransportProxy(transport, self._peer, self._connection_type in [SCT.FROM_SERVER, SCT.TO_SERVER], self._connection_type == SCT.COMPONENT)
 
             self._xml_parser = sax.make_parser()
             self._xml_parser.setFeature(sax.handler.feature_namespaces, True)
