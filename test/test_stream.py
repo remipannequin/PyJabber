@@ -76,3 +76,20 @@ def test_response_stream_server():
     assert "xml:lang='en'" in tag
     assert "xmlns='jabber:server'" in tag
     assert "xmlns:stream='http://etherx.jabber.org/streams'" in tag
+
+
+def test_response_stream_component():
+    attrs = {
+        (None, "to"): "sub.domain",
+        (None, "version"): "1.0",
+        ("http://www.w3.org/XML/1998/namespace", "lang"): "en"
+    }
+    open_tag = Stream.responseStream(attrs, False, True)
+    tag = open_tag.decode()
+
+    assert tag.startswith("<stream:stream id='")
+    assert "from='sub.domain'" in tag
+    assert "version='1.0'" in tag
+    assert "xml:lang='en'" in tag
+    assert "xmlns='jabber:component:accept'" in tag
+    assert "xmlns:stream='http://etherx.jabber.org/streams'" in tag
