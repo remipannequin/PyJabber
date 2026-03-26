@@ -46,6 +46,13 @@ class StreamComponentHandler(StreamHandler):
         expected = hashlib.sha1(data).hexdigest()
         return received_handshake == expected
 
+    def update_comp_host(self):
+        """Update the host name of the component with the domain declared
+        by the external component."""
+        peer = self._parser_ref._peer
+        domain = self._parser_ref._domain_claim
+        self._connection_manager.set_component_host(peer, domain)
+
     def _handle_init_comp(self, _):
         """Init without TLS, nor features. Directly go to AUTH stage."""
         self._stage = Stage.AUTH
@@ -59,6 +66,8 @@ class StreamComponentHandler(StreamHandler):
             # reply with an empty handshake tag
             self._transport.write(b'<handshake/>')
             self._stage = Stage.READY
+            # after authentication, change the hostname of the component
+            self.update_comp_host()
             return Signal.DONE
         else:
             return Signal.FORCE_CLOSE

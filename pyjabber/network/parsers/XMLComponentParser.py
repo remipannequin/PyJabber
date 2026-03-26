@@ -20,6 +20,7 @@ class XMLComponentParser(XMLParser):
 
     def __init__(self, host, transport, starttls):
         super().__init__(transport, starttls)
+        self._domain_claim = None
            
     
     def startElementNS(self, name, qname, attrs):
@@ -44,17 +45,18 @@ class XMLComponentParser(XMLParser):
 
             # we nned to know the id to verify handshake
             id = str(uuid4())
-            to = attrs.get((None, "to"))
+            self._domain_claim = attrs.get((None, "to"))
+            # TODO check that the the domain is not already taken
             rsp_stream = Stream(
                 id=id,
-                from_=to,
+                from_=self._domain_claim,
                 to=attrs.get((None, "from")),
                 version=attrs.get((None, "version"), "1.0"),
                 xml_lang=attrs.get(("http://www.w3.org/XML/1998/namespace", "lang")),
                 xmlns=Namespaces.COMPONENT.value
             )
 
-            self._streamHandler.set_stream_id(id, to)
+            self._streamHandler.set_stream_id(id, self._domain_claim)
             self._transport.write(rsp_stream.open_tag())
                 
             signal = self._streamHandler.handle_open_stream()
