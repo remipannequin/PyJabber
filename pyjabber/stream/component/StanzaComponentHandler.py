@@ -2,6 +2,7 @@ import xml.etree.ElementTree as ET
 
 from pyjabber.stream.JID import JID
 from pyjabber.stream.StanzaHandler import StanzaHandler
+from pyjabber.utils import ClarkNotation as CN
 
 
 class StanzaComponentHandler(StanzaHandler):
@@ -11,20 +12,28 @@ class StanzaComponentHandler(StanzaHandler):
         super().__init__(buffer)
 
         self._functions = {
-            "{jabber:server}iq": self.handle_iq,
-            "{jabber:server}message": self.handle_msg,
-            "{jabber:server}presence": self.handle_pre
+            "{jabber:component:accept}iq": self.handle_iq,
+            "{jabber:component:accept}message": self.handle_msg,
+            "{jabber:component:accept}presence": self.handle_pre
         }
 
-    def handle_iq(self, element: ET.Element):   # pragma: no cover
+    def handle_iq(self, element: ET.Element):
+        # TODO ?
         return
 
-    def handle_pre(self, element: ET.Element):  # pragma: no cover
+    def handle_pre(self, element: ET.Element):
+        # TODO ? 
         pass
 
     def handle_msg(self, element: ET.Element):
         """Check that the message domain is the one of the component."""
         jid = JID(element.attrib["to"])
+        # TODO check that from is right
+
+        # transform namespace jabber:component:accept to jabber:client
+        ns, tag = CN.deglose(element.tag)
+        #ns should be jabber:component:accept
+        CN.update_namespace('jabber:client', element)
 
         if not jid.resource:
             priority = self._presenceManager.most_priority(jid)
