@@ -9,6 +9,10 @@ from pyjabber.stream.component.StreamComponentHandler import StreamComponentHand
 from pyjabber.utils import ClarkNotation as CN
 
 class XMLComponentParser(XMLParser):
+    """This is a specialization of XMLParser for external components (XEP-0114)
+    It rewrite the startElementNS to intercept the stream id that is sent to the
+    component (it must be know to verify handshake). 
+    """
     stanza_handler_constructor = StanzaComponentHandler
     stream_handler_constructor = StreamComponentHandler
     server: bool = False

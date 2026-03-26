@@ -357,7 +357,7 @@ class ConnectionManager(metaclass=Singleton):
         try:
             self._componentList.pop(peer)
         except KeyError:
-            logger.warning(f"Server {peer} not present in the online list")
+            logger.warning(f"Component {peer} not present in the online list")
 
     def close_component(self, peer: Tuple[str, int]) -> None:
         """
@@ -372,7 +372,7 @@ class ConnectionManager(metaclass=Singleton):
             buffer.write('</stream:stream>'.encode())
             self.disconnection_component(peer)
         except KeyError as e:
-            logger.error(f"{peer} not present in the online list")
+            logger.error(f"Component {peer} not present in the online list")
 
     def get_component_buffer(self, peer: Optional[Tuple[str, int]] = None, host: Optional[str] = None) -> Union[
         Transport, None]:
@@ -391,7 +391,7 @@ class ConnectionManager(metaclass=Singleton):
             except IndexError:
                 pass
 
-        logger.error("Missing peer OR host to search for server transport. Returning None")
+        logger.error("Missing peer OR host to search for component transport. Returning None")
         return None
 
     def update_transport_component(self, new_transport: Transport, peer: Tuple[str, int] = None, host: str = None):

@@ -77,7 +77,7 @@ class XMLProtocol(asyncio.Protocol):
         if self._connection_type == SCT.CLIENT:
             self._logger_tag = "from"
         elif self._connection_type == SCT.COMPONENT:
-            self._logger_tag = "component"
+            self._logger_tag = "from component"
         elif self._connection_type == SCT.FROM_SERVER:
             self._logger_tag = "from server"
         else:
