@@ -11,10 +11,11 @@ class StreamComponentHandler(StreamHandler):
         super().__init__(transport, starttls, parser_ref)
         self._ibr_feature = False
         # remove the tls and sasl stages
-        # CONNECTED -> AUTH -> BIND
+        # CONNECTED -> AUTH
         self._stages_handlers.pop(Stage.OPENED)
         self._stages_handlers.pop(Stage.SSL)
         self._stages_handlers.pop(Stage.SASL)
+        self._stages_handlers.pop(Stage.BIND)
         # in connected, go directly to AUTH
         self._stages_handlers[Stage.CONNECTED] = self._handle_init_comp
         self._stages_handlers[Stage.AUTH] = self._handle_handshake
