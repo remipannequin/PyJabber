@@ -141,7 +141,7 @@ class Server:
 
             logger.info(
                 f"Server is listening servers on {[s.getsockname() for s in self._server_listener.sockets if s]}")
-            logger.success("Server started...")
+
             # if xep-0114 plugin is present, start external components server
             # TODO check metadata.PLUGIN
             try:
@@ -163,7 +163,8 @@ class Server:
 
             logger.info(
                 f"Server is listening external components on {[s.getsockname() for s in self._component_listener.sockets if s]}")
-            logger.success("External component server started...")
+            
+            logger.success("Server started...")
             
             self._ready.set()
 
