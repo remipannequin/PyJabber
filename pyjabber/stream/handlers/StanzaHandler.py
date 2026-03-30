@@ -6,7 +6,7 @@ from loguru import logger
 
 from pyjabber import AppConfig
 from pyjabber.features.presence.PresenceFeature import Presence
-from pyjabber.network.ConnectionManager import ConnectionManager
+from pyjabber.network.ConnectionManager import ConnectionManager, is_subdomain_of
 from pyjabber.plugins.PluginManager import PluginManager
 from pyjabber.queues.NewConnection import NewConnectionWrapper
 from pyjabber.queues.PendingMessage import PendingMessageWrapper
@@ -109,6 +109,19 @@ class StanzaHandler:
                     for buffer in resource_online:
                         buffer[1].write(ET.tostring(element))
 
+        # External Components.
+        # elif jid.domain is a subdomain of local domain
+        # search a component with this domain
+        elif is_subdomain_of(AppConfig.app_config.host, jid.domain) and self._connections.has_component_host(jid.domain):
+            CN.update_namespace('jabber:component:accept', element)
+            buffer = self._connections.get_component_transport_host(host=jid.domain)
+            if buffer:
+                buffer.write(ET.tostring(element))
+            else:
+                await self._message_queue.put(
+                    PendingMessageWrapper(jid.domain, ET.tostring(element), external_component=jid.domain)
+                )
+        
         # Remote protocols
         else:
             ns, tag = CN.break_down(element.tag)

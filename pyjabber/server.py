@@ -175,12 +175,10 @@ class Server:
                 self._component_listener = await loop.create_server(
                     lambda: XMLProtocol(
                         namespace="jabber:component:accept",
-                        host=self._host,
                         connection_timeout=self._connection_timeout,
-                        cert_path=self._cert_path,
-                        connection_type=SCT.COMPONENT
+                        #connection_type=SCT.COMPONENT
                     ),
-                    host=["127.0.0.1"],
+                    host=["127.0.0.1"],  # locked for now on localhost,
                     port=self._component_port,
                     family=self._family,
                 )

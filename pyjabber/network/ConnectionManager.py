@@ -298,25 +298,11 @@ class ConnectionManager(metaclass=Singleton):
         except KeyError as e:
             logger.error(f"Component {peer} not present in the online list")
 
-    def get_component_buffer(self, peer: Optional[Tuple[str, int]] = None, host: Optional[str] = None) -> Union[
-        Transport, None]:
+    def get_component_transport_host(self, host: Optional[str] = None) -> Union[Transport, None]:
         """
             Return the buffer associated with the given component
         """
-        if peer:
-            if peer not in self._componentList:
-                logger.error("Missing peer in the connection list. Check it")
-                return None
-            return self._componentList.get(peer)[1]
-
-        if host:
-            try:
-                return [buffer[1] for buffer in self._componentList.values() if buffer[0] == host].pop()
-            except IndexError:
-                pass
-
-        logger.error("Missing peer OR host to search for component transport. Returning None")
-        return None
+        return [buffer[1] for buffer in self._componentList.values() if buffer[0] == host].pop()
 
     def set_component_host(self, peer: Tuple[str, int], host:str):
         """Update the component host (subdomain) when it is declared by the component."""
@@ -338,6 +324,7 @@ class ConnectionManager(metaclass=Singleton):
     def has_component_host(self, domain):
         """Return true if a component manages this subdomain"""
         return domain in [b[0] for b in self._componentList.values()]
+
 
 def is_subdomain_of(parent: str, domain: str) -> bool:
     """Utility function that return true if to_test is a subdomain of domain.

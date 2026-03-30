@@ -25,6 +25,7 @@ async def queue_worker():
    """
     local_pending_stanzas: Dict[str, List[bytes]] = {}
     remote_pending_stanzas: Dict[str, List[tuple[JID, bytes]]] = {}
+    component_pending_stanzas: Dict[str, List[tuple[JID, bytes]]] = {}
 
     connection_manager = ConnectionManager()
 
@@ -72,7 +73,17 @@ async def queue_worker():
                             for b in buffer:
                                 b.transport.write(stanza_bytes)
                         local_pending_stanzas.pop(target_key, None)
+                # got a new connection from an external component: send pending messages
+                elif result.component:
+                    host = result.value
+                    if host in component_pending_stanzas:
+                        stanzas_list = component_pending_stanzas[host]
+                        buffer = connection_manager.get_component_transport_host(host)
 
+                        while component_pending_stanzas[host]:
+                            _, stanza_bytes = stanzas_list.pop()
+                            buffer.write(stanza_bytes)
+                        component_pending_stanzas.pop(host, None)
                 else:
                     host = result.value
                     if host in remote_pending_stanzas:
@@ -94,7 +105,13 @@ async def queue_worker():
                         await s2s_queue.put(jid.domain)  # Put remote host on connection queue
 
                     remote_pending_stanzas[jid.domain].append((jid, payload))
+                elif result.is_external_component:
+                    if str(jid) not in component_pending_stanzas:
+                        component_pending_stanzas[str(jid)] = []
+                    component_pending_stanzas[str(jid)].append(payload)
+
                 else:
+                    # TODO 
                     if str(jid) not in local_pending_stanzas:
                         local_pending_stanzas[str(jid)] = []
                     local_pending_stanzas[str(jid)].append(payload)
